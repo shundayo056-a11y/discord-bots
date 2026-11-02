@@ -113,7 +113,7 @@ async def setup_ticket(ctx):
 
 
 # ==========================================
-# 3. 管理コマンド追加パック (Moderation & Utility)
+# 3. 管理コマンドパック (Moderation & Utility)
 # ==========================================
 @bot.tree.command(name="kick", description="指定したメンバーをキックします。")
 @app_commands.describe(member="対象のメンバー", reason="理由")
@@ -150,7 +150,7 @@ async def server_info(interaction: discord.Interaction):
 
 
 # ==========================================
-# 4. ゲームコマンド追加パック (Games)
+# 4. ゲームコマンドパック (Games)
 # ==========================================
 @bot.tree.command(name="omikuji", description="今日の運勢を占います！")
 async def omikuji(interaction: discord.Interaction):
@@ -207,8 +207,13 @@ async def on_ready():
 
 
 # ==========================================
-# 6. FastAPI エンドポイント (HADリクエストなど)
+# 6. FastAPI エンドポイント (UptimeRobot & HAD対応)
 # ==========================================
+@app.get("/health")
+async def uptimerobot_health():
+    """UptimeRobotによる死活監視（スピンダウン防止用）"""
+    return {"status": "active", "message": "Bot is alive!"}
+
 @app.post("/api/had-request")
 async def handle_had_request(request: Request):
     data = await request.json()
