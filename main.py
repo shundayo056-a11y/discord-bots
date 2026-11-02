@@ -31,17 +31,27 @@ class AuthView(View):
     async def verify_button(self, interaction: discord.Interaction, button: Button):
         global verify_role_id
         target_role_id = verify_role_id or int(os.getenv("MEMBER_ROLE_ID", 0))
-        role = interaction.guild.get_role(target_role_id)
         
+        if not target_role_id:
+            await interaction.response.send_message("❌ 認証ロールが設定されていません。管理者に `/verifysetup` の実行を依頼してください。", ephemeral=True)
+            return
+
+        role = interaction.guild.get_role(target_role_id)
         if not role:
-            await interaction.response.send_message("❌ 認証ロールが設定されていません。", ephemeral=True)
+            await interaction.response.send_message("❌ 設定された認証ロールがサーバー内に見つかりません。管理者に確認してください。", ephemeral=True)
             return
 
         if role in interaction.user.roles:
             await interaction.response.send_message("✅ すでに認証されています！", ephemeral=True)
-        else:
-            await interaction.user.add_roles(role)
+            return
+
+        try:
+            await interaction.user.add_roles(role, reason="あつまりさば ユーザー認証完了")
             await interaction.response.send_message("🎉 認証が完了しました！あつまりさばへようこそ！", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message("❌ ボットの権限不足によりロールを付与できませんでした。", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ エラーが発生しました: {e}", ephemeral=True)
 
 @bot.tree.command(name="verifysetup", description="認証時に付与するロールを設定します。")
 @app_commands.describe(role="付与するロールを選択してください")
@@ -207,9 +217,9 @@ async def on_ready():
 
 
 # ==========================================
-# 6. FastAPI エンドポイント (UptimeRobot & HAD対応)
+# 6. FastAPI エンドポイント (HEAD対応済み)
 # ==========================================
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def uptimerobot_health():
     """UptimeRobotによる死活監視（スピンダウン防止用）"""
     return {"status": "active", "message": "Bot is alive!"}
@@ -220,7 +230,7 @@ async def handle_had_request(request: Request):
     print(f"Received HAD Request: {data}")
     return {"status": "success", "received": data}
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def health_check():
     return {"status": "online"}
 
